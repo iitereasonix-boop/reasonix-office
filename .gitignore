@@ -1,0 +1,10 @@
+.next/
+node_modules/
+.env
+.env.*
+!.env.example
+next-env.d.ts
+coverage/
+tsconfig.tsbuildinfo
+backups/
+tests/mocks/claude.log
