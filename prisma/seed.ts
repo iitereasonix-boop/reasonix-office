@@ -7,8 +7,8 @@ async function main() {
   const email = process.env.INITIAL_LAWYER_EMAIL;
   const password = process.env.INITIAL_LAWYER_PASSWORD;
 
-  if (!email || !password || password.length < 12 || password === "replace-with-a-strong-password") {
-    throw new Error("Set INITIAL_LAWYER_EMAIL and a password of at least 12 characters.");
+  if (!email || !password || password.length < 10 || password === "replace-with-a-strong-password") {
+    throw new Error("Set INITIAL_LAWYER_EMAIL and a password of at least 10 characters.");
   }
 
   const normalizedEmail = email.toLowerCase();
