@@ -13,6 +13,7 @@
     "start": "next start",
     "db:deploy": "prisma migrate deploy",
     "db:demo": "tsx --env-file=.env prisma/seed-demo.ts",
+    "laws:sync": "tsx --env-file=.env scripts/sync-jordanian-laws.ts",
     "db:local": "node scripts/local-db.mjs",
     "db:local:stop": "node scripts/local-db.mjs stop",
     "test": "tsx --env-file=.env --test tests/unit.test.ts",
@@ -45,6 +46,7 @@
     "eslint": "^9.34.0",
     "eslint-config-next": "^15.5.0",
     "jszip": "^3.10.1",
+    "playwright": "^1.65.1",
     "typescript": "^5.9.2"
   },
   "overrides": {

@@ -5,7 +5,19 @@ import { type FormEvent, useState } from "react";
 import { useUser } from "@/components/AppShell";
 import { Confirm, DOCUMENT_ACCEPT, Empty, formatDate, Loader, Modal, PageHead, request, useData } from "@/components/ui";
 
-type Source = { id: string; title: string; reference: string; fileName: string | null; size: number | null; createdAt: string; _count: { articles: number } };
+type Source = {
+  id: string;
+  title: string;
+  reference: string;
+  fileName: string | null;
+  size: number | null;
+  officialType: string | null;
+  officialStatus: string | null;
+  officialUrl: string | null;
+  lastVerifiedAt: string | null;
+  createdAt: string;
+  _count: { articles: number };
+};
 type Detail = { source: Source & { articles: { id: string; number: string; text: string }[] } };
 
 const size = (bytes: number) => (bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} ميغابايت` : `${Math.ceil(bytes / 1024)} كيلوبايت`);
@@ -102,7 +114,17 @@ export default function LibraryPage() {
         {!data ? <Loader error={error} retry={reload} /> : data.sources.length === 0 ? <Empty title="لا توجد نصوص قانونية" hint="ارفع القوانين (PDF أو Word) أو الصق نصها من مصدر معتمد ليستطيع المساعد الاستناد إليها." icon={<BookOpen size={28} />} /> : (
           <ul className="rows">{data.sources.map((source) => (
             <li key={source.id}>
-              <span>{source.title}<small>{source.reference} · {source._count.articles ? `${source._count.articles} مادة` : "دون نص مستخرج"}{source.fileName ? ` · ${source.fileName}` : ""} · {formatDate(source.createdAt)}</small></span>
+              <span>
+                {source.title}
+                <small>
+                  {source.reference} · {source._count.articles ? `${source._count.articles} مادة` : "دون نص مستخرج"}
+                  {source.fileName ? ` · ${source.fileName}` : ""}
+                  {source.officialStatus ? ` · ${source.officialStatus}` : ""}
+                  {source.lastVerifiedAt ? ` · تحقق رسمي ${formatDate(source.lastVerifiedAt)}` : ""}
+                  {" · "}{formatDate(source.createdAt)}
+                  {source.officialUrl && <> · <a href={source.officialUrl} target="_blank" rel="noreferrer">المصدر الرسمي</a></>}
+                </small>
+              </span>
               <span className="row-actions">
                 {source._count.articles > 0 && <button className="icon-btn" aria-label={`عرض ${source.title}`} onClick={() => setViewing(source.id)}><Eye size={16} /></button>}
                 {source.fileName && <a className="icon-btn" aria-label={`تنزيل ${source.fileName}`} href={`/api/library?file=${source.id}&download=1`}><Download size={16} /></a>}

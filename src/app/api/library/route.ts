@@ -12,7 +12,20 @@ const meta = z.object({
   reference: z.string().trim().min(2).max(300),
 });
 const schema = meta.extend({ text: z.string().trim().min(10).max(2_000_000) });
-const listSelect = { id: true, title: true, reference: true, fileName: true, mimeType: true, size: true, createdAt: true, _count: { select: { articles: true } } } as const;
+const listSelect = {
+  id: true,
+  title: true,
+  reference: true,
+  fileName: true,
+  mimeType: true,
+  size: true,
+  officialType: true,
+  officialStatus: true,
+  officialUrl: true,
+  lastVerifiedAt: true,
+  createdAt: true,
+  _count: { select: { articles: true } },
+} as const;
 
 export const GET = route(staffRoles, async (user, request) => {
   const params = request.nextUrl.searchParams;

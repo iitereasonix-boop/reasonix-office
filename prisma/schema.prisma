@@ -413,17 +413,24 @@ model IntakeItem {
 }
 
 model LegalSource {
-  id        String         @id @default(cuid())
-  title     String
-  reference String
-  fileName  String?
-  mimeType  String?
-  size      Int?
-  content   Bytes?
-  addedById String
-  createdAt DateTime       @default(now())
-  deletedAt DateTime?
-  articles  LegalArticle[]
+  id              String         @id @default(cuid())
+  title           String
+  reference       String
+  fileName        String?
+  mimeType        String?
+  size            Int?
+  content         Bytes?
+  officialKey     String?        @unique
+  officialType    String?
+  officialStatus  String?
+  officialUrl     String?
+  officialNumber  Int?
+  officialYear    Int?
+  lastVerifiedAt  DateTime?
+  addedById       String
+  createdAt       DateTime       @default(now())
+  deletedAt       DateTime?
+  articles        LegalArticle[]
 }
 
 model LegalArticle {

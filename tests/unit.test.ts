@@ -14,6 +14,7 @@ import { findConflicts, matchClient, nameSimilarity } from "../src/lib/matching"
 import { normalizeArabic, searchTerms, whatsappNumber } from "../src/lib/text";
 import { digitsOnly, fillTemplate, isStopRequest, validSignature } from "../src/lib/whatsapp";
 import { detectOfficePhotoMimeType } from "../src/lib/office-photo";
+import { officialArticleText } from "../src/lib/legal";
 
 const rule = { id: "r1", name: "قاعدة اختبار", days: 30, base: "NOTIFICATION" as const, legalBasis: "سند اختبار" };
 const decided = new Date("2026-10-01T06:00:00Z");
@@ -196,6 +197,11 @@ test("article numbers are caught in every common spelling", () => {
     assert.deepEqual(unverifiedFacts(text, ["لا شيء"]), ["97"], text);
   }
   assert.deepEqual(unverifiedFacts("المادة (97)", ['{"article":"97"}']), []);
+});
+
+test("official article HTML is converted to searchable plain text", () => {
+  assert.equal(officialArticleText("<p>المادة ١<br/>الحقوق&nbsp;والواجبات</p>"), "المادة ١\nالحقوق والواجبات");
+  assert.equal(officialArticleText("<p>أ&amp;ب &#x627;</p>"), "أ&ب ا");
 });
 
 test("a date is known in either spelling the tools use", () => {

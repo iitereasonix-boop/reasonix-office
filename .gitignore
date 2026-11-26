@@ -1,6 +1,8 @@
 .next/
 node_modules/
 .env
+.jordanian-laws-sync.json
+.jordanian-laws-sync.json.tmp
 .env.*
 !.env.example
 next-env.d.ts
@@ -8,3 +10,8 @@ coverage/
 tsconfig.tsbuildinfo
 backups/
 tests/mocks/claude.log
+sync-out.txt
+sync-err.txt
+pilot*.txt
+probe*.txt
+tsc-err.txt
