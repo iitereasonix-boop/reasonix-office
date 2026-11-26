@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, BookOpen, Download, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { AlertCircle, BookOpen, Download, Eye, FileText, Plus, Search, Trash2, Upload } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useUser } from "@/components/AppShell";
 import { Confirm, DOCUMENT_ACCEPT, Empty, formatDate, Loader, Modal, PageHead, request, useData } from "@/components/ui";
@@ -102,9 +102,14 @@ export default function LibraryPage() {
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState("");
   const [viewing, setViewing] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [removing, setRemoving] = useState<Source | null>(null);
   const { data: detail } = useData<Detail>(viewing ? `/api/library?id=${viewing}` : null);
   const senior = user.role === "SENIOR_LAWYER";
+  const normalizedQuery = query.trim().toLocaleLowerCase("ar");
+  const visibleSources = data?.sources.filter((source) =>
+    `${source.title} ${source.reference}`.toLocaleLowerCase("ar").includes(normalizedQuery),
+  ) ?? [];
 
   return (
     <>
@@ -112,7 +117,13 @@ export default function LibraryPage() {
       {notice && <div className="notice notice-gold" role="status" onClick={() => setNotice("")}><AlertCircle size={16} />{notice}</div>}
       <section className="card">
         {!data ? <Loader error={error} retry={reload} /> : data.sources.length === 0 ? <Empty title="لا توجد نصوص قانونية" hint="ارفع القوانين (PDF أو Word) أو الصق نصها من مصدر معتمد ليستطيع المساعد الاستناد إليها." icon={<BookOpen size={28} />} /> : (
-          <ul className="rows">{data.sources.map((source) => (
+          <>
+          <label className="search-box" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Search size={17} aria-hidden="true" />
+            <input aria-label="ابحث في التشريعات" placeholder="ابحث باسم التشريع أو مرجعه الرسمي" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <span className="muted">{visibleSources.length} / {data.sources.length}</span>
+          </label>
+          {visibleSources.length === 0 ? <Empty title="لا توجد نتائج" hint="جرّب البحث باسم آخر أو بالمرجع الرسمي." icon={<Search size={28} />} /> : <ul className="rows">{visibleSources.map((source) => (
             <li key={source.id}>
               <span>
                 {source.title}
@@ -131,7 +142,8 @@ export default function LibraryPage() {
                 {senior && <button className="icon-btn" aria-label={`حذف ${source.title}`} onClick={() => setRemoving(source)}><Trash2 size={15} /></button>}
               </span>
             </li>
-          ))}</ul>
+          ))}</ul>}
+          </>
         )}
       </section>
       {adding && <AddSource onClose={() => setAdding(false)} onSaved={async (message) => { setNotice(message); await reload(); }} />}
@@ -140,7 +152,7 @@ export default function LibraryPage() {
           {!detail ? <Loader /> : (
             <>
               {detail.source.fileName && <p className="form-note"><a href={`/api/library?file=${viewing}`} target="_blank" rel="noreferrer">فتح الملف الأصلي: {detail.source.fileName}</a></p>}
-              <div className="viewer-page">{detail.source.articles.map((article) => <p key={article.id}>{article.text}</p>)}</div>
+              <div className="viewer-page">{detail.source.articles.map((article) => <section key={article.id}><h3>المادة {article.number}</h3><p>{article.text}</p></section>)}</div>
             </>
           )}
         </Modal>

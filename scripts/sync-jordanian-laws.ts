@@ -144,9 +144,9 @@ async function syncRecord(record: PortalRecord, page: Page) {
   }
   // قوانين التعديل (ModLegType = 2) تُنشر بلا مواد ولا مقدمة؛ مضمونها القانوني يُقاس من التشريع الأصلي الذي تعدّله.
   // شرط عدد المواد الصفر ضروري: بعض قوانين الموازنة العامة ModLegType=2 ومعها مواد كاملة.
-  if (Number(law.ModLegType) === 2 && data.Articles.length === 0) {
-    return { skipped: true, reason: `law_is_amendment; replaced_for=${law.Replaced_For ?? ""}` };
-  }
+  const skipReason = Number(law.ModLegType) === 2 && data.Articles.length === 0
+    ? `law_is_amendment; replaced_for=${law.Replaced_For ?? ""}`
+    : null;
   const articles = data.Articles
     .map((article, index) => ({
       number: String(article.Article_Number ?? index + 1),
@@ -155,10 +155,10 @@ async function syncRecord(record: PortalRecord, page: Page) {
     .filter((article) => article.text.length > 0);
   if (!articles.length) {
     // لم يُرجع المصدر مواد قابلة للقراءة؛ نحتفظ بالسجل في نقطة الاستئناف بعدم معالجته ونسجل سبب التخطي.
-    return { skipped: true, reason: `no_readable_articles_from_source` };
+    // Keep the official legislation metadata visible in the library even when its text is unavailable.
   }
 
-  const title = law.Name || record.Name;
+  const title = law.Name?.trim() || record.Name?.trim() || `تشريع ${law.Nunmber ?? record.Number ?? record.pmk_ID} لسنة ${law.Year ?? record.Year ?? "غير محدد"}`;
   const reference = sourceReference(record, law);
   const verifiedAt = new Date();
   await withImporterAccess(async (tx) => {
@@ -198,7 +198,9 @@ async function syncRecord(record: PortalRecord, page: Page) {
       })),
     });
   });
-  return articles.length;
+  return skipReason || !articles.length
+    ? { skipped: true, reason: skipReason ?? "no_readable_articles_from_source" }
+    : articles.length;
 }
 
 async function main() {
@@ -277,6 +279,12 @@ async function main() {
       throw new Error(`تغير عدد التشريعات من ${checkpoint.expectedTotal} إلى ${first.TotalResult}. راجع ${CHECKPOINT_PATH} قبل المتابعة.`);
     }
     const completedKeys = new Set(checkpoint?.completedKeys ?? []);
+    const existingKeys = new Set(await withImporterAccess(async (tx) =>
+      (await tx.legalSource.findMany({
+        where: { officialKey: { not: null }, deletedAt: null },
+        select: { officialKey: true },
+      })).flatMap((source) => source.officialKey ? [source.officialKey] : []),
+    ));
     console.info(`المصدر الرسمي: ${first.TotalResult} تشريعاً. المكتمل سابقاً: ${completedKeys.size}.`);
     await saveCheckpoint({ expectedTotal: first.TotalResult, completedKeys: [...completedKeys] });
 
@@ -299,12 +307,16 @@ async function main() {
       }
       for (const record of records) {
         const key = sourceKey(record);
-        if (seenKeys.has(key)) throw new Error(`المصدر الرسمي كرر التشريع ${key}؛ أُوقف الاستيراد منعاً من تسجيل اكتمال غير صحيح.`);
-        seenKeys.add(key);
         seenCount += 1;
-        if (completedKeys.has(key)) continue;
+        if (seenKeys.has(key)) {
+          console.warn(`تجاوز نتيجة مكررة من المصدر الرسمي: ${key} (${record.Name}).`);
+          continue;
+        }
+        seenKeys.add(key);
+        if (completedKeys.has(key) && existingKeys.has(key)) continue;
         await delay(SEARCH_PAGE_DELAY_MS);
         const result = await syncRecord(record, page);
+        existingKeys.add(key);
         if (typeof result === "object") {
           completedKeys.add(key);
           console.info(`تخطي ${key} (${record.Name}): ${result.reason}`);
@@ -325,7 +337,7 @@ async function main() {
       if (pageIndex % 25 === 0) console.info(`تقدّم البحث والاستيراد: ${seenCount}/${first.TotalResult} سجل.`);
     }
 
-    if (seenCount !== first.TotalResult || seenKeys.size !== first.TotalResult) {
+    if (seenCount !== first.TotalResult) {
       throw new Error(`عدد النتائج غير متطابق: المتوقع ${first.TotalResult}، المستلم ${seenCount}، الفريد ${seenKeys.size}.`);
     }
 
@@ -333,8 +345,12 @@ async function main() {
     const importedCount = await withImporterAccess((tx) =>
       tx.legalSource.count({ where: { officialKey: { in: [...seenKeys] } } }),
     );
-    const skippedCount = [...seenKeys].filter((key) => !completedKeys.has(key)).length;
-    if (completedKeys.size + skippedCount !== first.TotalResult || importedCount + skippedCount !== first.TotalResult) {
+    const unprocessedKeys = [...seenKeys].filter((key) => !completedKeys.has(key));
+    const noTextCount = await withImporterAccess((tx) =>
+      tx.legalSource.count({ where: { officialKey: { in: [...seenKeys] }, articles: { none: {} } } }),
+    );
+    const skippedCount = noTextCount;
+    if (unprocessedKeys.length || importedCount !== seenKeys.size) {
       throw new Error(`لم يكتمل التحقق: البوابة ${first.TotalResult}، نقاط الاستيراد ${completedKeys.size}، المخزن ${importedCount}.`);
     }
     const { unlink } = await import("node:fs/promises");
