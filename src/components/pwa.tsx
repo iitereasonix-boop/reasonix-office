@@ -56,6 +56,8 @@ export function InstallButton() {
   if (installed) return null;
   if (dismissed) return null;
 
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  const iOS = /iphone|ipad|ipod/i.test(ua);
   // الزر يظهر دائماً لغير المثبتين: على أندرويد وسطح المكتب يفتح النافذة الرسمية إن توفّرت،
   // وإلا يعرض الإرشاد المناسب لمنصة المستخدم (تثبيت من قائمة المتصفح، أو إضافة للشاشة الرئيسية).
 
