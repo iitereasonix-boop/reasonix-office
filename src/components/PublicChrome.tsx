@@ -4,6 +4,7 @@ import { ChevronDown, LogIn, MapPin, Menu, MessageCircle, Phone, X } from "lucid
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brand } from "@/components/brand";
+import { InstallHeaderButton } from "@/components/pwa";
 import { office, services } from "@/lib/office";
 import { whatsappNumber } from "@/lib/text";
 
@@ -29,6 +30,7 @@ export function PublicHeader() {
         <Link href="/#contact" onClick={close}>تواصل معنا</Link>
       </nav>
       <div className="site-actions">
+        <InstallHeaderButton />
         <Link className="site-header-login" href="/login" aria-label="تسجيل الدخول" onClick={close}><LogIn size={17} /><span>تسجيل الدخول</span></Link>
       </div>
     </header>

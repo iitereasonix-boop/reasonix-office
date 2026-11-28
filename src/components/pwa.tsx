@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // تسجيل Service Worker تلقائياً في كل البيئات (بما فيها التطوير للتجربة).
@@ -14,6 +15,55 @@ export function RegisterSW() {
     return () => window.removeEventListener("load", register);
   }, []);
   return null;
+}
+
+// زر مدمج للترويسة (بجانب تسجيل الدخول): يختفي إن كان التطبيق مثبتاً.
+export function InstallHeaderButton() {
+  const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+  const [hidden, setHidden] = useState(true); // SSR: مخفي حتى يقيس العميل الوضع، فلا وميض
+
+  useEffect(() => {
+    setHidden(
+      window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true,
+    );
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferred(e as InstallPromptEvent);
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setDeferred(null);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  if (hidden || installed) return null;
+
+  const install = async () => {
+    if (deferred) {
+      await deferred.prompt();
+      const choice = await deferred.userChoice;
+      if (choice.outcome === "accepted") setInstalled(true);
+      setDeferred(null);
+    } else {
+      // بلا نافذة رسمية (iOS أو متصفح بلا دعم): افتح إرشاد التثبيت العائم
+      document.dispatchEvent(new CustomEvent("reasonix:show-install-guide"));
+    }
+  };
+
+  return (
+    <button className="site-header-install" onClick={install} aria-label="تثبيت التطبيق" title="تثبيت التطبيق على جهازك">
+      <Download size={16} />
+      <span>تثبيت التطبيق</span>
+    </button>
+  );
 }
 
 type InstallPromptEvent = Event & {
@@ -52,6 +102,13 @@ export function InstallButton() {
   useEffect(() => {
     if (dismissed) window.localStorage.setItem("reasonix-install-dismissed", "1");
   }, [dismissed]);
+
+  // زر الترويسة يستدعي هذا الزر العائم عندما لا توجد نافذة تثبيت رسمية
+  useEffect(() => {
+    const show = () => setDismissed(false);
+    document.addEventListener("reasonix:show-install-guide", show);
+    return () => document.removeEventListener("reasonix:show-install-guide", show);
+  }, []);
 
   if (installed) return null;
   if (dismissed) return null;
