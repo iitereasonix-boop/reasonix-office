@@ -56,11 +56,8 @@ export function InstallButton() {
   if (installed) return null;
   if (dismissed) return null;
 
-  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  const iOS = /iphone|ipad|ipod/i.test(ua);
-  const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
-  // على Chrome/Edge/Firefox ينتظر الحدث الرسمي؛ وعلى iOS (Safari) يعرض الإرشاد دائماً
-  if (!deferred && !(iOS && safari)) return null;
+  // الزر يظهر دائماً لغير المثبتين: على أندرويد وسطح المكتب يفتح النافذة الرسمية إن توفّرت،
+  // وإلا يعرض الإرشاد المناسب لمنصة المستخدم (تثبيت من قائمة المتصفح، أو إضافة للشاشة الرئيسية).
 
   const install = async () => {
     if (deferred) {
@@ -85,11 +82,11 @@ export function InstallButton() {
             <p className="mb-3 text-sm opacity-80">ثبّت «ريزونكس ونهار» كتطبيق مستقل بأيقونة خاصة، يعمل بنافذة كاملة بلا شريط متصفح.</p>
           ) : iOS ? (
             <p className="mb-3 text-sm opacity-80">
-              على آيفون أو آيباد: من شريط Safari اختر <strong>مشاركة</strong> ⬆️ ثم <strong>إضافة إلى الشاشة الرئيسية</strong>.
+              من شريط Safari اختر <strong>مشاركة</strong> ⬆️ ثم <strong>إضافة إلى الشاشة الرئيسية</strong>.
             </p>
           ) : (
             <p className="mb-3 text-sm opacity-80">
-              من قائمة المتصفح اختر <strong>تثبيت التطبيق</strong> أو استخدم أيقونة ⊕ في شريط العنوان.
+              من قائمة المتصفح اختر <strong>تثبيت التطبيق</strong>، أو استخدم أيقونة <strong>⊕</strong> في شريط العنوان، ثم اضغط تثبيت.
             </p>
           )}
           <div className="flex gap-2">
